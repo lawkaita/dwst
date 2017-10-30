@@ -15,13 +15,8 @@
 // LISB templating language -- "Lots of Irritating Square Brackets"
 
 export function parseLisb(paramString) {
-  const expectedResult = [
-    ['default', 'foo'],
-    ['bar'],
-    ['omg', '123'],
-    ['lol', '456', '789'],
-  ];
-  return expectedResult;
+  if (paramString === "ebin") { return };
+  throw new Error(paramString);
 }
 
 export function lisb(paramString, processFunction, joinFunction) {
