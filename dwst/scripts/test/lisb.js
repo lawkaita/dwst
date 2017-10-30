@@ -1,7 +1,8 @@
 
 /**
 
-  Authors: Lauri Kaitala, Finland 2017
+  Authors: Toni Ruottu, Finland 2017
+           Lauri Kaitala, Finland 2017
 
   This file is part of Dark WebSocket Terminal.
 
@@ -27,6 +28,122 @@ describe('lisb module', () => {
       ];
       expect(result).to.deep.equal(expectedResult);
     });
+    it('should parse a single default particle', () => {
+      const result = parseLisb('particle');
+      const expectedResult = [
+        ['default', 'particle'],
+      ];
+      expect(result).to.deep.equal(expectedResult);
+    });
+    it('should parse a single named particle without parameters', () => {
+      const result = parseLisb('${instruction()}');
+      const expectedResult = [
+        ['instruction'],
+      ];
+      expect(result).to.deep.equal(expectedResult);
+    });
+    it('should parse a single named particle with a single parameter', () => {
+      const result = parseLisb('${instruction(123)}');
+      const expectedResult = [
+        ['instruction', '123'],
+      ];
+      expect(result).to.deep.equal(expectedResult);
+    });
+    it('should parse a single named particle with two parameters', () => {
+      const result = parseLisb('${instruction(123,abc)}');
+      const expectedResult = [
+        ['instruction', '123', 'abc'],
+      ];
+      expect(result).to.deep.equal(expectedResult);
+    });
+    it('should parse two instruction particles',  () => {
+      expect(parseLisb(
+        '${foo()}${bar()}',
+      )).to.deep.equal([
+        ['foo'],
+        ['bar'],
+      ]);
+      expect(parseLisb(
+        'foo${bar()}',
+      )).to.deep.equal([
+        ['default', 'foo'],
+        ['bar'],
+      ]);
+      expect(parseLisb(
+        '${foo()}bar',
+      )).to.deep.equal([
+        ['foo'],
+        ['default', 'bar'],
+      ]);
+    });
+    it('should parse three instruction particles',  () => {
+      expect(parseLisb(
+        '${foo()}${bar()}${quux()}',
+      )).to.deep.equal([
+        ['foo'],
+        ['bar'],
+        ['quux'],
+      ]);
+      expect(parseLisb(
+        'foo${bar()}${quux()}',
+      )).to.deep.equal([
+        ['default', 'foo'],
+        ['bar'],
+        ['quux'],
+      ]);
+      expect(parseLisb(
+        '${foo()}bar${quux()}',
+      )).to.deep.equal([
+        ['foo'],
+        ['default', 'bar'],
+        ['quux'],
+      ]);
+      expect(parseLisb(
+        '${foo()}${bar()}quux',
+      )).to.deep.equal([
+        ['foo'],
+        ['bar'],
+        ['default', 'quux'],
+      ]);
+      expect(parseLisb(
+        'foo${bar()}quux',
+      )).to.deep.equal([
+        ['default', 'foo'],
+        ['bar'],
+        ['default', 'quux'],
+      ]);
+    });
+    /*
+
+
+      const result = parseLisb('\[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] \[instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] \  [instruction2(456)]');
+
+      # forbidden
+      const forbidden = [
+        '[instruction1(123)]\ [instruction2(456)]',
+        '[instruction1(123)]garbage',
+        '[instruction1(123)][instruction2(456)]',
+        '[instruction1(123)',
+        '[instruction1(123]',
+      ]
+
+      const result = parseLisb('[instruction1(123)]garbage [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] garbage[instruction2(456)]');
+
+      const result = parseLisb('[instruction1(123)] ');
+      const result = parseLisb('[instruction1(123)]\ ');
+      const result = parseLisb('[instruction1(123)]foo');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+      const result = parseLisb('[instruction1(123)] [instruction2(456)]');
+
+*/
   });
 
   console.log('lol');
