@@ -14,7 +14,17 @@
 
 // LISB templating language -- "Lots of Irritating Square Brackets"
 
-export default function lisb(paramString, processFunction, joinFunction) {
+export function parseLisb(paramString) {
+  const expectedResult = [
+    ['default', 'foo'],
+    ['bar'],
+    ['omg', '123'],
+    ['lol', '456', '789'],
+  ];
+  return expectedResult;
+}
+
+export function lisb(paramString, processFunction, joinFunction) {
   return joinFunction(paramString.split(' ').map(rawParam => {
     let param = rawParam;
     /* eslint-disable prefer-template */
@@ -47,3 +57,5 @@ export default function lisb(paramString, processFunction, joinFunction) {
     return processFunction(instruction, params, end);
   }));
 }
+
+export default lisb;

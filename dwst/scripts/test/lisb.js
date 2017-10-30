@@ -1,8 +1,7 @@
 
 /**
 
-  Authors: Toni Ruottu, Finland 2010-2017
-           Lauri Kaitala, Finland 2017
+  Authors: Lauri Kaitala, Finland 2017
 
   This file is part of Dark WebSocket Terminal.
 
@@ -13,10 +12,43 @@
 
 */
 
-import utils from '../utils.js';
+import {lisb, parseLisb} from '../lisb.js';
 import {expect} from 'chai';
 
-describe('utils module', () => {
+describe('lisb module', () => {
+  describe('parseLisb function', () => {
+    it('should be able to parse lisb notation', () => {
+      const result = parseLisb('foo [bar] [omg(123)] [lol(456,789)]');
+      const expectedResult = [
+        ['default', 'foo'],
+        ['bar'],
+        ['omg', '123'],
+        ['lol', '456', '789'],
+      ];
+      expect(result).to.deep.equal(expectedResult);
+    });
+  });
+
+  console.log('lol');
+  describe('this test', () => {
+    it('should show up in mocha', () => {
+      const result = 1;
+      expect(result).to.equal(1);
+    });
+    it('toni sample 1', () => {
+      const result = lisb('a b c', (x, y) => y, s => s.join(''));
+      expect(result).to.equal('abc');
+    });
+    it('toni sample 2', () => {
+      const result = lisb('[foo(123)]', (a, b) => `-${a}-${b}-`, s => s.join(''));
+      expect(result).to.equal('-foo-123-');
+    });
+    it('toni sample 3', () => {
+      const result = lisb('[foo(123)]', (a, b) => `${a}-${b}`, s => s.join(''));
+      expect(result).to.equal('foo-123');
+    });
+  });
+/*
   describe('parseNum function', () => {
     it('should support decimal values', () => {
       const result = utils.parseNum('123');
@@ -52,4 +84,5 @@ describe('utils module', () => {
       expect(result).to.deep.equal(expectedChunks);
     });
   });
+*/
 });
