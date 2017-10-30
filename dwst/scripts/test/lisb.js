@@ -76,7 +76,7 @@ describe('lisb module', () => {
         ['default', 'bar'],
       ]);
     });
-    it('should parse three instruction particles',  () => {
+    it('should parse three instruction particles', () => {
       expect(parseLisb(
         '${foo()}${bar()}${quux()}',
       )).to.deep.equal([
@@ -113,9 +113,60 @@ describe('lisb module', () => {
         ['default', 'quux'],
       ]);
     });
-    /*
+    it('should parse escaped dollar sign as a regular character', () => {
+      // note that javascript eliminates every other backslash
+      expect(parseLisb(
+        '\\$',
+      )).to.deep.equal([
+        ['default', '$'],
+      ]);
+      expect(parseLisb(
+        '\\${foo()}',
+      )).to.deep.equal([
+        ['default', '${foo()}'],
+      ]);
+      expect(parseLisb(
+        'foo\\${bar()}',
+      )).to.deep.equal([
+        ['default', 'foo${bar()}'],
+      ]);
+      expect(parseLisb(
+        '\\${foo()}bar',
+      )).to.deep.equal([
+        ['default', '${foo()}bar'],
+      ]);
+    });
+    it('should parse escaped backslash as a regular character', () => {
+      // note that javascript eliminates every other backslash
+      expect(parseLisb(
+        '\\\\',
+      )).to.deep.equal([
+        ['default', '\\'],
+      ]);
+      expect(parseLisb(
+        '\\\\${foo()}',
+      )).to.deep.equal([
+        ['default', '\\${foo()}'],
+      ]);
+      expect(parseLisb(
+        'foo\\\\${bar()}',
+      )).to.deep.equal([
+        ['default', 'foo\\${bar()}'],
+      ]);
+      expect(parseLisb(
+        '\\\\${foo()}bar',
+      )).to.deep.equal([
+        ['default', '\\${foo()}bar'],
+      ]);
+    });
+  });
+  /*
+      
+      # ei saa olla:
+      \a
+      $x
 
-
+      #WANHA
       const result = parseLisb('\[instruction1(123)] [instruction2(456)]');
       const result = parseLisb('[instruction1(123)] \[instruction2(456)]');
       const result = parseLisb('[instruction1(123)] \  [instruction2(456)]');
@@ -144,7 +195,6 @@ describe('lisb module', () => {
       const result = parseLisb('[instruction1(123)] [instruction2(456)]');
 
 */
-  });
 
   console.log('lol');
   describe('this test', () => {
@@ -165,6 +215,7 @@ describe('lisb module', () => {
       expect(result).to.equal('foo-123');
     });
   });
+});
 /*
   describe('parseNum function', () => {
     it('should support decimal values', () => {
@@ -202,4 +253,3 @@ describe('lisb module', () => {
     });
   });
 */
-});
