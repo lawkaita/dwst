@@ -14,156 +14,149 @@
 
 // LISB templating language -- "Lots of Irritating Square Brackets"
 
-export function parseLisb(paramString) {
+function affirmProgress(remainder, debug_remainderLength) {
+  if (debug_remainderLength === remainder.length) {
+    throw new Error("you arent doing anything! workstring is: " + remainder);
+  }
+}
+
+// todo: how to handle whitespace?
+// todo: can instructions have escapes?
+// todo: define legal instruction name characters somewhere. 
+// can instruction names begin with '(' ? 
+// todo: define legal default names also.
+// suspect: named particles contain their escapes as is.
+
+// a named particle cannot end except in a '}' char.
+function readNamedParticle(remainder) {
+  const debug_remainderLength = remainder.length;
+  if (remainder[1] !== '{') {
+    const msg = "broken named particle: missing '{', remainder = " + remainder;
+    throw new Error(msg);
+  }
+  const outerBracketClosed = remainder.indexOf('}');
+  if (outerBracketClosed < 0) {
+    const msg = "broken named particle: missing '}', remainder = " + remainder;
+    throw new Error(msg);
+  }
+  const particle = remainder.slice(0, outerBracketClosed+1); // include bracket
+  remainder = remainder.slice(outerBracketClosed+1); // overslicing strings returns empty strings
+  const particleBody = particle.slice(2,-1); // trim surrounding ${}
+  const innerBracketOpened = particleBody.indexOf('(');
+  if (innerBracketOpened === 0) {
+    const msg = "broken named particle: missing instruction name, particleBody = " + particleBody;
+    throw new Error(msg);
+  }
+  if (innerBracketOpened < 0) {
+    const msg = "broken named particle: missing '(', particleBody = " + particleBody;
+    throw new Error(msg);
+  }
+  const particleName = particleBody.slice(0, innerBracketOpened);
+  const innerBracketClosed = particleBody.indexOf(')');
+  if (innerBracketClosed === 0) {
+    const msg = "broken instruction: missing ')', particleBody = " + particleBody;
+    throw new Error(msg);
+  }
+  const particleParams_body = particleBody.slice(innerBracketOpened);
+  const particleParams_string = particleParams_body.slice(1,-1); // trim surrounding ()
+  let particleParams = [];
+  if (particleParams_string.length > 0) { // can this be done more elegantly ?
+    particleParams = particleParams_string.split(',');
+  }
+  const result = [particleName].concat(particleParams);
+  affirmProgress(remainder, debug_remainderLength);
+  return [remainder, result];
+}
+
+function doEscapeChar(remainder, buffer) {
+  remainder = remainder.substr(1); // eliminate '\'
+  if (remainder === '') {
+    const msg = "syntax error: looks like your last character is an escape. ";
+    throw new Error(msg);
+  }
+  const escapedChar = remainder[0];
+  buffer.push(escapedChar);
+  remainder = remainder.substr(1);
+  return [remainder, buffer];
+}
+
+// todo: escape must not be last character
+function readDefaultParticle(remainder) {
+  const debug_remainderLength = remainder.length;
   const specialChars = [
     '$',
     '\\',
   ];
-  const originalString = paramString;
-  let workString = paramString;
-  let buffer = [];
-  const parsed = [];
-  const mode_reading_default = 0;
-  const mode_begin_read_instruction = 1;
-  const mode_reading_instruction = 2;
-  let mode = mode_reading_default;
+  let buffer = []; // reference or copy ?: can i use const buffer?
+  while (remainder.length > 0) {
+    let c = remainder[0];
+    if (c === '\\') { // escape next character
+      let escapeResult = doEscapeChar(remainder, buffer); // reference or copy ?
+      remainder = escapeResult[0];
+      buffer = escapeResult[1]; // reference or copy ?
+      continue; // next char might also be an escape: start over.
+    }
+    // c is not a special character: get next special character position:
+    let specialPositionsNear = specialChars.map(character => {
+       let i = remainder.indexOf(character);
+       if (i < 0) { return 0; }
+       return i;
+    });
+    specialPositionsNear.sort(function(a,b) { return a - b; });
+    let nextSpecialPos = specialPositionsNear.filter(i => i > 0)[0];
+    let read = null // read next default particle: make this nicer...
+    if (nextSpecialPos === undefined) {
+      read = remainder;
+      remainder = '';
+    } else {
+      read = remainder.slice(0, nextSpecialPos);
+      remainder = remainder.slice(nextSpecialPos);
+    }
+    // the bug is in a five line radius from here!
+    affirmProgress(remainder, debug_remainderLength);
+    buffer.push(read); // in case buffer contains something, escaped chars for example
+  }
+  let result = ['default', buffer.join('')]
+  return [remainder, result];
+}
+
+function readOneParticle(remainder, parsed) {
+  const specialChars = [
+    '$',
+    '\\',
+  ];
+  const debug_remainderLength = remainder.length;
+  let c = remainder[0];
+  let result = null;
+  if (c === '$') { // starts named particle
+    result = readNamedParticle(remainder);
+  } else {
+    result = readDefaultParticle(remainder);
+  }
+  remainder = result[0];
+  parsed.push(result[1]);
+
+  // lastly:
+  affirmProgress(remainder, debug_remainderLength);
+  return [remainder, parsed];
+}
+
+export function parseLisb(paramString) {
+  let parsed = [];
+  let remainder = paramString;
   const debug_max = 100;
   let iteration = 0;
-  while (workString.length > 0) {
-    let c = workString.charAt(0);
-    // or // let c = workString[0];
-    if (mode === mode_reading_default) {
-      // start instruction
-      if (c === '$') {
-        mode = mode_begin_read_instruction;
-        workString = workString.substr(1);
-        continue;
-      }
-      // escape next character
-      if (c === '\\') { // must not be last character: this is a todo
-        // string pop char {
-        workString = workString.substr(1);
-        // }
-        let escapedChar = workString[0];
-        buffer.push(escapedChar);
-        // string pop char {
-        workString = workString.substr(1);
-        // }
-        continue;
-      }
-      // c is not a special character:
-      // read stuff into parsed:
-      // get next special character position
-      let specialPositionsNear = specialChars.map(character => {
-         let i = workString.indexOf(character);
-         if (i < 0) { return 0; }
-         return i;
-      });
-      specialPositionsNear.sort(function(a,b) { return a - b; });
-      let nextSpecialPos = specialPositionsNear[0];
-
-      // read next default particle
-      let read = null
-      if (nextSpecialPos === 0) {
-        read = workString;
-        workString = '';
-      } else {
-        // string pop string {
-        read = workString.slice(0, nextSpecialPos);
-        workString = workString.slice(nextSpecialPos);
-        // }
-      }
-      // the following is done in case buffer contains something, escaped chars for example:
-      buffer.push(read); 
-      let result = ['default', buffer.join('')]
-      parsed.push(result);
-      buffer = [];
-      // here ends one succesful default particle read
-      
-      // legacy mud:
-      /*
-      let nextDollarPos = workString.indexOf('$');
-      let nextEscapePos = workString.indexOf('\\');
-      // resolve nextSpecialPos:
-      let nextSpecialPos = null;
-      if (nextDollarPos > 0 && nextEscapePos > 0) {
-        nextSpecialPos = Math.min(nextDollarPos, nextEscapePos);
-      }
-      if (nextDollarPos === nextEscapePos) {
-        // this is possible only if both are -1
-        // the rest of workString is only text
-        parsed.push(workString);
-        workString = '';
-      }
-      */
-      // the other is positive and a relevant position.
-    }
-    if (mode === mode_begin_read_instruction) {
-      if (c !== '{') { throw new Error("broken instruction: missing '{'"); }
-      mode = mode_reading_instruction;
-      // workString = workString.substr(1);
-      // ^do this elsewhere
-      continue;
-    }
-    if (mode === mode_reading_instruction) {
-      // note: this parser doesn't support nesting
-
-      // read instruction whole body:
-      let readUntil = workString.indexOf('}') + 1; // include '}'
-      if (readUntil = 0) { throw new Error("broken instruction: missing '}'"); }
-      let instructionString = workString.slice(0, readUntil);
-      workString = workString.slice(readUntil); // overslicing strings returns empty strings
-      instructionString = instructionString.slice(1,-1); // trim surrounding {}
-      console.log(instructionString);
-
-      // read instruction name:
-      readUntil = workString.indexOf('('); // dont read '('
-      // todo: define legal instruction name characters somewhere. 
-      // can instruction names begin with '(' ? 
-      // todo: define legal default names also.
-      if (readUntil = 0) { throw new Error("broken instruction: missing instruction name"); }
-      if (readUntil < 0) { throw new Error("broken instruction: missing '('"); }
-      let instructionName = workString.slice(0, readUntil);
-      workString = workString.slice(readUntil);
-
-      // read instruction params:
-      readUntil = workString.indexOf(')') + 1; // include ')'
-      if (readUntil = 0) { throw new Error("broken instruction: missing ')'"); }
-      let instructionParamsString = workString.slice(0, readUntil);
-      workString = workString.slice(readUntil);
-      instructionParamsString = instructionParamsString.slice(1,-1); // clean surrounding brackets
-      let instructionParams = instructionParamsString.split(',');
-      // todo: how to handle whitespace?
-      // todo: can instructions have escapes?
-      let result = [instructionName].concat(instructionParams);
-      parsed.push(result);
-      mode = mode_reading_default;
-    }
+  while (remainder.length > 0) {
+    let result = readOneParticle(remainder, parsed);
+    remainder = result[0];
+    parsed = result[1];
     iteration = iteration + 1;
     if (iteration > debug_max) {
       console.log("debug_max exceeded");
-      throw new Error("debug_max exceeded with mode: " + mode);
+      throw new Error("debug_max exceeded");
     }
   }
-  console.log('returning... mode is: ' + mode);
   return parsed;
-
-
-
-  /*
-  const parsed = [];
-  if (paramString.indexOf('$') > -1) {
-    // const regex = /\$\{(.*)\}/g;
-    const regex = /\$\{(.+)\(\)\}/g;
-    const extracted = paramString.replace(regex, '$1');
-    const result = [extracted];
-    parsed.push(result);
-    return parsed;
-  }
-  const result = ['default', paramString];
-  parsed.push(result);
-  return parsed;
-  */
 }
 
 export function lisb(paramString, processFunction, joinFunction) {
