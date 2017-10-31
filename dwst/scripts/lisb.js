@@ -75,6 +75,8 @@ function doEscapeChar(remainder, buffer) {
     throw new Error(msg);
   }
   const escapedChar = remainder[0];
+  console.log('at escp rem: ' + remainder);
+  console.log('at escp char: ' + escapedChar);
   buffer.push(escapedChar);
   remainder = remainder.substr(1);
   return [remainder, buffer];
@@ -105,18 +107,24 @@ function readDefaultParticle(remainder) {
     specialPositionsNear.sort(function(a,b) { return a - b; });
     let nextSpecialPos = specialPositionsNear.filter(i => i > 0)[0];
     let read = null // read next default particle: make this nicer...
+    console.log("next special pos: " + nextSpecialPos);
+    console.log("rem : " + remainder);
     if (nextSpecialPos === undefined) {
       read = remainder;
       remainder = '';
     } else {
+      // special character encountered, break!
       read = remainder.slice(0, nextSpecialPos);
       remainder = remainder.slice(nextSpecialPos);
     }
     // the bug is in a five line radius from here!
     affirmProgress(remainder, debug_remainderLength);
     buffer.push(read); // in case buffer contains something, escaped chars for example
+    console.log("default buffer: " + buffer);
+    if (nextSpecialPos !== undefined) { break;}
   }
   let result = ['default', buffer.join('')]
+  console.log("default result: " + result);
   return [remainder, result];
 }
 
@@ -142,6 +150,7 @@ function readOneParticle(remainder, parsed) {
 }
 
 export function parseLisb(paramString) {
+  console.log("paramString: " + paramString);
   let parsed = [];
   let remainder = paramString;
   const debug_max = 100;
@@ -156,6 +165,7 @@ export function parseLisb(paramString) {
       throw new Error("debug_max exceeded");
     }
   }
+  console.log("ok");
   return parsed;
 }
 
