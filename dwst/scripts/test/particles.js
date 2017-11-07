@@ -175,5 +175,8 @@ describe('particles module', () => {
         }).to.throw();
       });
     });
+    it('should TODO', () => {
+      
+    });
   });
 });

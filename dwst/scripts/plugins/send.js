@@ -14,6 +14,7 @@
 
 import utils from '../utils.js';
 import particles from '../particles.js';
+import {InvalidParticles} from '../particles.js';
 
 export default class Send {
 
@@ -103,7 +104,17 @@ export default class Send {
     function joinStrings(strings) {
       return strings.join('');
     }
-    const msg = particles(paramString, (...args) => this._process(...args), joinStrings);
+    let msg;
+    try {
+      msg = particles(paramString, (...args) => this._process(...args), joinStrings);
+    } catch (e) {
+      if(e instanceof InvalidParticles === true) {
+        this._dwst.terminal.mlog([e.name, e.message], 'error');
+      } else {
+        throw e;
+      }
+      return;
+    }
     if (this._dwst.connection === null || this._dwst.connection.isClosing() || this._dwst.connection.isClosed()) {
       const connectTip = [
         'Use ',

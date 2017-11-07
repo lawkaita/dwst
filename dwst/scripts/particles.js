@@ -20,12 +20,20 @@ const specialChars = [
   '\\',
 ];
 
+export class InvalidParticles extends Error {
+  constructor(msg) {
+    super();
+    this.name = 'Syntax Error';
+    this.message = msg;
+  }
+}
+
 function extractEscapedChar(remainder1) {
   const remainder2 = remainder1.slice(1);
   if (remainder2 === '') {
     const msg = 'syntax error: looks like your last character is an escape. ';
     // TODO - what if it is the only character?
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   const escapedChar = remainder2.charAt(0);
   let escapedIsSpecial = false;
@@ -36,7 +44,7 @@ function extractEscapedChar(remainder1) {
   });
   if (escapedIsSpecial === false) {
     const msg = 'syntax error: don\'t escape normal characters. ';
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   const remainder = remainder2.slice(1);
   return [escapedChar, remainder];
@@ -83,7 +91,7 @@ function skipExpressionOpen(remainder1) {
   const expressionOpen = '${';
   if (remainder1.startsWith(expressionOpen) === false) {
     const msg = `expression needs to start with ${expressionOpen}`;
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   const remainder = remainder1.slice(expressionOpen.length);
   return remainder;
@@ -93,7 +101,7 @@ function skipExpressionClose(remainder1) {
   const expressionClose = '}';
   if (remainder1.startsWith(expressionClose) === false) {
     const msg = `expression needs to end with ${expressionClose}`;
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   const remainder = remainder1.slice(expressionClose.length);
   return remainder;
@@ -121,7 +129,7 @@ function readInstructionName(remainder1) {
   const argListOpenIndex = remainder1.indexOf('(');
   if (argListOpenIndex === 0) {
     const msg = `broken named particle: missing instruction name, remainder = ${remainder1}`;
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   let sliceIndex;
   if (argListOpenIndex === -1) {
@@ -138,14 +146,14 @@ function readInstructionArg(remainder1) {
   const argSeparatorIndex = remainder1.indexOf(',');
   if (argSeparatorIndex === 0) {
     const msg = `broken particle argument: missing argument, remainder = ${remainder1}`;
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   let sliceIndex;
   if (argSeparatorIndex === -1) {
     const argListCloseIndex = remainder1.indexOf(')');
     if (argListCloseIndex === -1) {
       const msg = `Expected ' or ), remainder = ${remainder1}`;
-      throw new Error(msg);
+      throw new InvalidParticles(msg);
     }
     sliceIndex = argListCloseIndex;
   } else {
@@ -154,7 +162,7 @@ function readInstructionArg(remainder1) {
   const arg = remainder1.slice(0, sliceIndex);
   if (arg.indexOf(' ') > -1) {
     const msg = 'syntax error: whitespace in instruction args';
-    throw new Error(msg);
+    throw new InvalidParticles(msg);
   }
   const remainder = remainder1.slice(sliceIndex);
   return [arg, remainder];
@@ -162,7 +170,7 @@ function readInstructionArg(remainder1) {
 
 function readInstructionArgs(remainder1) {
   if (remainder1.charAt(0) === ',') {
-    throw new Error('Unexpected comma.');
+    throw new InvalidParticles('Unexpected comma.');
   }
   const instructionArgs = [];
   let tmp = remainder1;
